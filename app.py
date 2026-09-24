@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
 
 # 1. Page Configuration Setup
 st.set_page_config(
@@ -15,17 +16,30 @@ st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>🏦 Smart Loan Ris
 st.markdown("<h4 style='text-align: center; color: #6B7280;'>Production-Grade Machine Learning Evaluation Framework</h4>", unsafe_allow_html=True)
 st.write("---")
 
-# 3. Securely load model artifacts
+# 3. Automatic Model Training Pipeline (Runs on fly)
 @st.cache_resource
-def load_artifacts():
-    artifacts = joblib.load('loan_model_artifacts.pkl')
-    return artifacts['model'], artifacts['features']
+def train_and_cache_model():
+    # Load dataset natively 
+    # (Make sure 'loan_data.csv' is uploaded to your GitHub repo root folder!)
+    df = pd.read_csv("loan_data.csv")
+    
+    # Preprocess and Encode
+    X = df.drop(columns=['loan_status'])
+    y = df['loan_status']
+    X = pd.get_dummies(X, drop_first=True)
+    
+    # Train the Model
+    model = RandomForestClassifier(n_estimators=100, random_state=42)
+    model.fit(X, y)
+    
+    return model, list(X.columns)
 
+# Safely call training block
 try:
-    model, trained_features = load_artifacts()
-    st.sidebar.success("🤖 Core ML Model Loaded Successfully!")
+    model, trained_features = train_and_cache_model()
+    st.sidebar.success("🤖 Core ML Model Trained & Loaded Live!")
 except Exception as e:
-    st.error("⚠️ Error loading model artifacts. Make sure 'loan_model_artifacts.pkl' exists in this directory.")
+    st.error(f"⚠️ Dataset linking error. Make sure 'loan_data.csv' is uploaded to your GitHub repository root folder. Details: {e}")
     st.stop()
 
 # 4. Form Interface Structure for Applicant Metrics
@@ -67,18 +81,16 @@ if st.button("🚀 Analyze Credit & Predict Loan Risk", use_container_width=True
     # Apply One-Hot Encoding to the input row
     input_encoded = pd.get_dummies(input_df)
     
-    # Reindex the encoded dataframe to perfectly match the original trained features matrix
-    # This automatically creates missing dummy columns with 0 values
+    # Reindex columns to match trained template schema layout
     input_final = input_encoded.reindex(columns=trained_features, fill_value=0)
     
-    # Compute probabilities and final categorical risk state predictions
+    # Compute probabilities and final predictions
     prediction = model.predict(input_final)[0]
     probability = model.predict_proba(input_final)[0][1] * 100
     
     st.write("---")
     st.subheader("📊 Analytical Decision Summary")
     
-    # Display distinct outputs based on your dataset's framework (1 = Approved/Default Risk, 0 = Rejected)
     if prediction == 1:
         st.error(f"❌ **Loan Request Flagged (High Risk)**")
         st.write(f"The algorithmic validation pipeline flags this profile as a potential credit risk. Calculated Default Probability: **{probability:.2f}%**")
