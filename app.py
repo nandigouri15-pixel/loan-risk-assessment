@@ -1,0 +1,87 @@
+import streamlit as st
+import pandas as pd
+import numpy as np
+import joblib
+
+# 1. Page Configuration Setup
+st.set_page_config(
+    page_title="Credit Risk Analyzer",
+    page_icon="🏦",
+    layout="centered"
+)
+
+# 2. Design UI Header elements
+st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>🏦 Smart Loan Risk Assessment Portal</h1>", unsafe_markdown=True)
+st.markdown("<h4 style='text-align: center; color: #6B7280;'>Production-Grade Machine Learning Evaluation Framework</h4>", unsafe_markdown=True)
+st.write("---")
+
+# 3. Securely load model artifacts
+@st.cache_resource
+def load_artifacts():
+    artifacts = joblib.load('loan_model_artifacts.pkl')
+    return artifacts['model'], artifacts['features']
+
+try:
+    model, trained_features = load_artifacts()
+    st.sidebar.success("🤖 Core ML Model Loaded Successfully!")
+except Exception as e:
+    st.error("⚠️ Error loading model artifacts. Make sure 'loan_model_artifacts.pkl' exists in this directory.")
+    st.stop()
+
+# 4. Form Interface Structure for Applicant Metrics
+st.subheader("📋 Enter Applicant Demographics & Financial Details")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    person_age = st.slider("Applicant Age", 18, 100, 28)
+    person_income = st.number_input("Annual Income ($)", min_value=0, value=55000, step=1000)
+    person_gender = st.selectbox("Gender", ["male", "female"])
+    person_education = st.selectbox("Education Level", ["High School", "Bachelor", "Master", "Doctorate", "Associate"])
+
+with col2:
+    loan_amnt = st.number_input("Requested Loan Amount ($)", min_value=0, value=12000, step=500)
+    credit_score = st.slider("Credit Score", 300, 850, 680)
+    person_home_ownership = st.selectbox("Home Ownership", ["RENT", "MORTGAGE", "OWN", "OTHER"])
+    loan_intent = st.selectbox("Loan Purpose Intent", ["EDUCATION", "MEDICAL", "VENTURE", "PERSONAL", "HOMEIMPROVEMENT", "DEBTCONSOLIDATION"])
+
+# 5. Process Input Data on Button Click
+st.write("")
+if st.button("🚀 Analyze Credit & Predict Loan Risk", use_container_width=True):
+    
+    # Construct a raw dictionary mimicking your original dataset structure
+    input_data = {
+        'person_age': person_age,
+        'person_income': person_income,
+        'loan_amnt': loan_amnt,
+        'credit_score': credit_score,
+        'person_gender': person_gender,
+        'person_education': person_education,
+        'person_home_ownership': person_home_ownership,
+        'loan_intent': loan_intent
+    }
+    
+    # Convert input to DataFrame
+    input_df = pd.DataFrame([input_data])
+    
+    # Apply One-Hot Encoding to the input row
+    input_encoded = pd.get_dummies(input_df)
+    
+    # Reindex the encoded dataframe to perfectly match the original trained features matrix
+    # This automatically creates missing dummy columns with 0 values
+    input_final = input_encoded.reindex(columns=trained_features, fill_value=0)
+    
+    # Compute probabilities and final categorical risk state predictions
+    prediction = model.predict(input_final)[0]
+    probability = model.predict_proba(input_final)[0][1] * 100
+    
+    st.write("---")
+    st.subheader("📊 Analytical Decision Summary")
+    
+    # Display distinct outputs based on your dataset's framework (1 = Approved/Default Risk, 0 = Rejected)
+    if prediction == 1:
+        st.error(f"❌ **Loan Request Flagged (High Risk)**")
+        st.write(f"The algorithmic validation pipeline flags this profile as a potential credit risk. Calculated Default Probability: **{probability:.2f}%**")
+    else:
+        st.success(f"✅ **Loan Request Approved (Low Risk)**")
+        st.write(f"The algorithmic validation pipeline passes this profile safely. Calculated Credit Default Risk: **{probability:.2f}%**")
