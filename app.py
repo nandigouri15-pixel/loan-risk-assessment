@@ -11,8 +11,8 @@ st.set_page_config(
 )
 
 # 2. Design UI Header elements
-st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>🏦 Smart Loan Risk Assessment Portal</h1>", unsafe_markdown=True)
-st.markdown("<h4 style='text-align: center; color: #6B7280;'>Production-Grade Machine Learning Evaluation Framework</h4>", unsafe_markdown=True)
+st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>🏦 Smart Loan Risk Assessment Portal</h1>", unsafe_allow_html=True)
+st.markdown("<h4 style='text-align: center; color: #6B7280;'>Production-Grade Machine Learning Evaluation Framework</h4>", unsafe_allow_html=True)
 st.write("---")
 
 # 3. Securely load model artifacts
