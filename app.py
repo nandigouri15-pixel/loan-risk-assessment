@@ -16,11 +16,10 @@ st.markdown("<h1 style='text-align: center; color: #1E3A8A;'>🏦 Smart Loan Ris
 st.markdown("<h4 style='text-align: center; color: #6B7280;'>Production-Grade Machine Learning Evaluation Framework</h4>", unsafe_allow_html=True)
 st.write("---")
 
-# 3. Automatic Model Training Pipeline (Runs on fly)
+# 3. Automatic Model Training Pipeline 
 @st.cache_resource
 def train_and_cache_model():
     # Load dataset natively 
-    # (Make sure 'loan_data.csv' is uploaded to your GitHub repo root folder!)
     df = pd.read_csv("loan_data.csv")
     
     # Preprocess and Encode
@@ -42,7 +41,19 @@ except Exception as e:
     st.error(f"⚠️ Dataset linking error. Make sure 'loan_data.csv' is uploaded to your GitHub repository root folder. Details: {e}")
     st.stop()
 
-# 4. Form Interface Structure for Applicant Metrics
+# 4. Technical Summary in the Sidebar Layout (Interviewer Cheat Sheet)
+with st.sidebar:
+    st.write("---")
+    st.markdown("### 🛠️ System Architecture")
+    st.markdown("""
+    - **Classifier Engine:** Random Forest Ensemble Model
+    - **Features Processing:** Categorical One-Hot Encoding
+    - **Workflow Integration:** Live Dynamic Cache
+    - **Data Pipeline Size:** 1,000+ Native Transactions
+    - **Developer Profile:** [nandigouri15-pixel](https://github.com)
+    """)
+
+# 5. Form Interface Structure for Applicant Metrics
 st.subheader("📋 Enter Applicant Demographics & Financial Details")
 
 col1, col2 = st.columns(2)
@@ -59,11 +70,19 @@ with col2:
     person_home_ownership = st.selectbox("Home Ownership", ["RENT", "MORTGAGE", "OWN", "OTHER"])
     loan_intent = st.selectbox("Loan Purpose Intent", ["EDUCATION", "MEDICAL", "VENTURE", "PERSONAL", "HOMEIMPROVEMENT", "DEBTCONSOLIDATION"])
 
-# 5. Process Input Data on Button Click
+# 6. Process Input Data on Button Click
 st.write("")
 if st.button("🚀 Analyze Credit & Predict Loan Risk", use_container_width=True):
     
-    # Construct a raw dictionary mimicking your original dataset structure
+    st.write("---")
+    st.subheader("📊 Analytical Decision Summary")
+    
+    # A. Business Logic Guardrail Check
+    if loan_amnt > (person_income * 3):
+        st.warning("⚠️ **Financial Guardrail Notice:** The requested loan amount exceeds 300% of the applicant's annual income. This profile carries structural high-leverage risk.")
+        st.write("")
+    
+    # B. Construct a raw dictionary mimicking your original dataset structure
     input_data = {
         'person_age': person_age,
         'person_income': person_income,
@@ -85,15 +104,20 @@ if st.button("🚀 Analyze Credit & Predict Loan Risk", use_container_width=True
     input_final = input_encoded.reindex(columns=trained_features, fill_value=0)
     
     # Compute probabilities and final predictions
-    prediction = model.predict(input_final)[0]
-    probability = model.predict_proba(input_final)[0][1] * 100
+    prediction = model.predict(input_final)
+    probabilities = model.predict_proba(input_final)
     
-    st.write("---")
-    st.subheader("📊 Analytical Decision Summary")
+    # Get the specific probability for risk class '1' (Default Risk)
+    # probabilities[0][1] gives the chance of default (class 1)
+    default_prob_percentage = float(probabilities[0][1]) * 100
     
-    if prediction == 1:
+    # C. Visual Risk Gauge Bar & Response Handling
+    st.write(f"**Calculated Algorithmic Default Risk Metric:**")
+    st.progress(default_prob_percentage / 100)
+    
+    if prediction == 1 or default_prob_percentage > 50:
         st.error(f"❌ **Loan Request Flagged (High Risk)**")
-        st.write(f"The algorithmic validation pipeline flags this profile as a potential credit risk. Calculated Default Probability: **{probability:.2f}%**")
+        st.write(f"The algorithmic validation pipeline flags this profile as a potential credit risk. Calculated Default Probability: **{default_prob_percentage:.2f}%**")
     else:
         st.success(f"✅ **Loan Request Approved (Low Risk)**")
-        st.write(f"The algorithmic validation pipeline passes this profile safely. Calculated Credit Default Risk: **{probability:.2f}%**")
+        st.write(f"The algorithmic validation pipeline passes this profile safely. Calculated Credit Default Risk: **{default_prob_percentage:.2f}%**")
